@@ -2,9 +2,9 @@
 
 ## Contents
 
-- `hw1/` (40 pts): implement and benchmark operations with different arithmetic intensity.
-- `hw2/` (60 pts): profile and optimize an autoregressive generation loop.
-- `hw3/` *(optional, ungraded)*: build the memory and scheduling core of a mini LLM inference engine.
+- `hw1/` (40 pts): implement and benchmark operations with different arithmetic intensity. **Requires a GPU** (H100 or L40S).
+- `hw2/` (60 pts): profile and optimize an autoregressive generation loop. **Requires a GPU** (L40S recommended; speedup targets are calibrated against it).
+- `hw3/` *(optional, ungraded)*: build the memory and scheduling core of a mini LLM inference engine. **Runs on CPU — no GPU needed.**
 
 HW1 and HW2 together add up to **100 points**. See each subfolder's `README.md` for the per-part point breakdown and the expected submission format.
 
