@@ -20,10 +20,14 @@ def optimized_loop(model, input_ids, n_steps):
             outputs = model(input_ids=current_ids, past_key_values=past_key_values, use_cache=True)
             past_key_values = outputs.past_key_values
             next_token_id = torch.argmax(outputs.logits[:, -1, :], dim=-1)
-            generated_tokens.append(next_token_id.item())
+            
+            # Keep the tensor on GPU instead of calling .item() here
+            generated_tokens.append(next_token_id) 
             current_ids = next_token_id.unsqueeze(1)
             
-    return generated_tokens
+    # Move the results back to CPU all at once at the end
+    return torch.cat(generated_tokens).tolist()
+
 
 
 def profile(loop_fn, model, input_ids, trace_name: str):
