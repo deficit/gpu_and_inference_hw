@@ -11,30 +11,43 @@ from utils import (
 
 
 def optimized_loop(model, input_ids, n_steps):
-    # TODO: fix the performance issues you found — changes may include
-    # both `optimized_loop` and `generate_optimized`
-    generated_ids = input_ids.clone()
     generated_tokens = []
-    for _ in range(n_steps):
-        outputs = model(input_ids=generated_ids)
-        next_token_id = torch.argmax(outputs.logits[:, -1, :], dim=-1)
-        token_value = next_token_id.item()
-        generated_tokens.append(token_value)
-        generated_ids = torch.cat([generated_ids, next_token_id.unsqueeze(0)], dim=1)
+    past_key_values = None
+    current_ids = input_ids.clone()
+    
+    with torch.inference_mode():
+        for _ in range(n_steps):
+            outputs = model(input_ids=current_ids, past_key_values=past_key_values, use_cache=True)
+            past_key_values = outputs.past_key_values
+            next_token_id = torch.argmax(outputs.logits[:, -1, :], dim=-1)
+            generated_tokens.append(next_token_id.item())
+            current_ids = next_token_id.unsqueeze(1)
+            
     return generated_tokens
 
 
 def profile(loop_fn, model, input_ids, trace_name: str):
-    # TODO: wrap loop_fn(model, input_ids, PROFILE_STEPS) with torch.profiler,
-    # print the summary table, and export a Chrome trace to RESULTS_DIR / trace_name
-    pass
+    with torch.profiler.profile(
+        activities=[
+            torch.profiler.ProfilerActivity.CPU,
+            torch.profiler.ProfilerActivity.CUDA,
+        ],
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True,
+    ) as prof:
+        loop_fn(model, input_ids, PROFILE_STEPS)
+
+    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+    prof.export_chrome_trace(str(RESULTS_DIR / trace_name))
 
 
 def generate_optimized(optimized_trace_name: str) -> float:
-    # TODO: load the model (consider dtype and other loading options),
-    # then call profile() and time_generation() on optimized_loop.
-    # Return the elapsed time from time_generation so main() can print a speedup.
-    pass
+    model = build_model(torch.bfloat16)
+    input_ids = get_input_ids()
+    profile(optimized_loop, model, input_ids, optimized_trace_name)
+    elapsed = time_generation(optimized_loop, model, input_ids, "Optimized")
+    return elapsed
 
 
 def main():
